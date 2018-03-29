@@ -5,11 +5,11 @@
 
 #define RFD_COMMAND_BUFFER_SIZE 4096;
 
-#if ENABLELOG
+// #if ENABLELOG
 #define LOG(...) fprintf( stderr, __VA_ARGS__ );
-#else
-#define LOG(...) do{ } while ( false )
-#endif
+// #else
+// #define LOG(...) do{ } while ( false )
+// #endif
 
 #include <node.h>
 #include <stdlib.h>
