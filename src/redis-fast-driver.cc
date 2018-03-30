@@ -289,7 +289,15 @@ NAN_METHOD(RedisConnector::RedisCmd) {
 			//LOG("bufsize is not big enough, current: %zu ", bufsize);
 			bufsize = bufsize * 2;
 			//LOG("increase it to %zu\n", bufsize);
-			buf = (char*)realloc(buf, bufsize);
+			char *new_buf = (char*)realloc(buf, bufsize);
+			if (new_buf != buf) {
+				buf = new_buf;
+				size_t bufused_ = 0;
+				for(uint32_t j=0;j<i;j++) {
+					argv[i] = buf + bufused_;
+					bufused_ += argvlen[j];
+				}
+			}
 			//try the smae index again
 			i--;
 			continue;
