@@ -111,7 +111,7 @@ NAN_METHOD(RedisConnector::Connect) {
 		info.GetReturnValue().Set(Nan::Undefined());
 	}
 	RedisConnector* self = ObjectWrap::Unwrap<RedisConnector>(info.This());
-	
+
 	String::Utf8Value v8str(info[0]);
 	const char *host = *v8str;
 	unsigned short port = (unsigned short)info[1]->NumberValue();
@@ -121,7 +121,7 @@ NAN_METHOD(RedisConnector::Connect) {
 	self->disconnectCb.Reset(disconnectCb);
 	Local<Function> setImmediate = Local<Function>::Cast(Nan::GetCurrentContext()->Global()->Get(Nan::New("setImmediate").ToLocalChecked()));
 	self->setImmediate.Reset(setImmediate);
-	
+
 	if(strstr(host,"/")==host) {
 		LOG("connect to unix:%s\n", host);
 		self->c = redisAsyncConnectUnix(host);
@@ -142,7 +142,7 @@ NAN_METHOD(RedisConnector::Connect) {
 	redisLibuvAttach(self->c,loop);
 	redisAsyncSetConnectCallback(self->c,ConnectCallback);
 	redisAsyncSetDisconnectCallback(self->c,DisconnectCallback);
-	
+
 	info.GetReturnValue().Set(Nan::Undefined());
 }
 
@@ -150,7 +150,7 @@ Local<Value> ParseResponse(redisReply *reply, size_t* size) {
 	Nan::EscapableHandleScope scope;
 	Local<Value> resp;
 	Local<Array> arr = Nan::New<Array>();
-	
+
 	switch(reply->type) {
 	case REDIS_REPLY_NIL:
 		resp = Nan::Null();
@@ -176,7 +176,7 @@ Local<Value> ParseResponse(redisReply *reply, size_t* size) {
 		Nan::ThrowError("Protocol error, unknown type");
 		return Nan::Undefined();
 	}
-	
+
 	return scope.Escape(resp);
 }
 
@@ -198,7 +198,7 @@ void RedisConnector::OnRedisResponse(redisAsyncContext *c, void *r, void *privda
 	} else {
 		// LOG("flags %i id %i\n", c->c.flags, callback_id);
 	}
-	
+
 	if (reply->type == REDIS_REPLY_ERROR) {
 		//LOG("[%d] redis error: %s\n", callback_id, reply->str);
 		totalSize += reply->len;
@@ -222,7 +222,7 @@ void RedisConnector::OnRedisResponse(redisAsyncContext *c, void *r, void *privda
 		setImmediate->Call(Nan::GetCurrentContext()->Global(), 4, argv);
 		return;
 	}
-	
+
 	Local<Value> argv[4] = {
 		jsCallback,
 		Nan::Null(),
@@ -230,7 +230,7 @@ void RedisConnector::OnRedisResponse(redisAsyncContext *c, void *r, void *privda
 		Nan::New<Number>(totalSize)
 	};
 	setImmediate->Call(Nan::GetCurrentContext()->Global(), 4, argv);
-	
+
 	// Local<Value> argv[3] = {
 	// 	Nan::Null(),
 	// 	resp,
@@ -246,7 +246,7 @@ NAN_METHOD(RedisConnector::RedisCmd) {
 	static size_t argvroom = 128;
 	static size_t *argvlen = (size_t*)malloc(argvroom * sizeof(size_t*));
 	static char **argv = (char**)malloc(argvroom * sizeof(char*));
-	
+
 	size_t bufused = 0;
 	Nan::HandleScope scope;
 	if(info.Length() != 2) {
@@ -254,7 +254,7 @@ NAN_METHOD(RedisConnector::RedisCmd) {
 		info.GetReturnValue().Set(Nan::Undefined());
 	}
 	RedisConnector* self = ObjectWrap::Unwrap<RedisConnector>(info.This());
-	
+
 	Local<Array> array = Local<Array>::Cast(info[0]);
 	// Local<Function> cb = Local<Function>::Cast(info[1]);
 	//Persistent<Function> cb = Persistent<Function>::New(Local<Function>::Cast(args[1]));
@@ -275,7 +275,7 @@ NAN_METHOD(RedisConnector::RedisCmd) {
 		argvlen = (size_t*)malloc(argvroom * sizeof(size_t*));
 		argv = (char**)malloc(argvroom * sizeof(char*));
 	}
-	
+
 	for(uint32_t i=0;i<arraylen;i++) {
 		String::Utf8Value str(array->Get(i));
 		uint32_t len = str.length();
@@ -287,14 +287,19 @@ NAN_METHOD(RedisConnector::RedisCmd) {
 			//increase buf size
 			//LOG("buf needed %zu\n", bufused + len);
 			//LOG("bufsize is not big enough, current: %zu ", bufsize);
-			bufsize = bufsize * 2;
-			//LOG("increase it to %zu\n", bufsize);
+			bufsize = bufsize * 20;
+			LOG("increase it to %zu\n", bufsize);
+			LOG("buf %p\n", buf);
 			char *new_buf = (char*)realloc(buf, bufsize);
+			LOG("new_buf %p\n", new_buf);
+			LOG("new_buf != buf %d\n", new_buf != buf);
 			if (new_buf != buf) {
 				buf = new_buf;
+				LOG("buf %p\n", buf);
 				size_t bufused_ = 0;
 				for(uint32_t j=0;j<i;j++) {
-					argv[i] = buf + bufused_;
+					LOG("bufused_ %zu\n", bufused_);
+					argv[j] = buf + bufused_;
 					bufused_ += argvlen[j];
 				}
 			}
@@ -308,14 +313,14 @@ NAN_METHOD(RedisConnector::RedisCmd) {
 		argvlen[i] = len;
 		//LOG("added \"%.*s\" len: %zu\n", int(argvlen[i]), argv[i], argvlen[i]);
 	}
-	
+
 	//LOG("command buffer filled with: \"%.*s\"\n", int(bufused), argv[0]);
 	uint32_t callback_id = self->callback_id++;
 	Isolate* isolate = Isolate::GetCurrent();
 	self->callbacksMap[callback_id].Reset(isolate, Local<Function>::Cast(info[1]));
-	
+
 	redisAsyncCommandArgv(
-		self->c, 
+		self->c,
 		OnRedisResponse,
 		(void*)(intptr_t)callback_id,
 		arraylen,

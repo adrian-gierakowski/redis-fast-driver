@@ -164,12 +164,12 @@ describe('redis-fast-driver', function() {
       const zrange = await rawCall(['zrange', key, 0, -1]);
       assert.deepEqual(zrange, ['a', 'b', 'c']);
     });
-    
+
     it('del hset:1', async function() {
       await rawCall(['del', 'hset:1']);
       assert(1 === 1);
     });
-    
+
     it('hmset', async function() {
       const hmset = await rawCall(['hmset', 'hset:1', 'a', 1, 'b', 2, 'c', 3]);
       assert(hmset === 'OK');
@@ -184,7 +184,7 @@ describe('redis-fast-driver', function() {
       const hgetall = await rawCall(['hgetall', 'hset:1']);
       assert.deepEqual(hgetall, ['a', '1', 'b', '2', 'c', '3']);
     });
-    
+
     it('del zset', async function() {
       const zadd = await rawCall(['del', 'zset:1']);
       assert(1 === 1);
@@ -200,7 +200,7 @@ describe('redis-fast-driver', function() {
       assert.deepEqual(zrange, ['a', 'b', 'c', 'd', 'e']);
     });
 
-    it('works correctly when command buffer needs to be resized', async function() {
+    it.only('works correctly when command buffer needs to be resized', async function() {
       // This should be the same as RFD_COMMAND_BUFFER_SIZE defined in
       // redis-fast-driver.h
       const commandBufferSize = 4096;
