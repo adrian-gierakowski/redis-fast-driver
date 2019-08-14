@@ -34,7 +34,7 @@
   },
   "homepage": "https://github.com/h0x91b/redis-fast-driver",
   "dependencies": {
-    "nan": "latest"
+    "nan": "^2.14.0"
   },
   "devDependencies": {
     "bluebird": "^3.5.1",
